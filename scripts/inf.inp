@@ -1,0 +1,221 @@
+/*
+Replication of the Stata do-file "inf.do" for
+
+Bruce E. Hansen (2017): "Time Series Econometrics for the 21st Century",
+The Journal of Economic Education, https://users.ssc.wisc.edu/~bhansen/papers/jee.pdf
+
+URL for data and code: https://users.ssc.wisc.edu/~bhansen/progs/jee.html
+*/
+
+clear
+set verbose off
+
+# SET PATH TO FOLDER INCLUDING THE DATASETS
+set workdir "/home/admin-tarassow/git/replication_ardl_hansen_2017"
+
+open "../data/gdp.gdt"
+
+
+series inf = 400 * (cpi/cpi(-1) - 1)
+setinfo inf --description="Inflation Rate" --graph-name="Inflation Rate"
+series dinf = diff(inf)
+
+# ARDL(4,4), (Hansen 2017, p. 141)
+smpl ; 2016:3
+ols dinf const dinf(-1 to -4) ur(-1 to -4) --robust
+
+# F-Test: Granger causality
+list Omit = ur(-1 to -4)
+omit Omit --test-only
+
+# AIC comparison (p. 141/142) -- Model selection
+matrix AIC = {} 		# initialize an empty matrix
+smpl 1950:1 $tmax
+
+# Model 1
+ols dinf const ur(-1) --simple
+AIC |= $aic
+# Model 2
+ols dinf const ur(-1 to -2) --simple
+AIC |= $aic
+# Model 3
+ols dinf const ur(-1 to -3) --simple
+AIC |= $aic
+# Model 4
+ols dinf const ur(-1 to -4) --simple
+AIC |= $aic
+
+# Model 5
+ols dinf const dinf(-1 to -2) ur(-1 to -1) --simple
+AIC |= $aic
+# Model 6
+ols dinf const dinf(-1 to -2) ur(-1 to -2) --simple
+AIC |= $aic
+# Model 7
+ols dinf const dinf(-1 to -2) ur(-1 to -3) --simple
+AIC |= $aic
+# Model 8
+ols dinf const dinf(-1 to -2) ur(-1 to -4) --simple
+AIC |= $aic
+
+# Model 9
+ols dinf const dinf(-1 to -3) ur(-1 to -1) --simple
+AIC |= $aic
+# Model 10
+ols dinf const dinf(-1 to -3) ur(-1 to -2) --simple
+AIC |= $aic
+# Model 11
+ols dinf const dinf(-1 to -3) ur(-1 to -3) --simple
+AIC |= $aic
+# Model 12
+ols dinf const dinf(-1 to -3) ur(-1 to -4) --simple
+AIC |= $aic
+
+# Model 13
+ols dinf const dinf(-1 to -4) ur(-1 to -1) --simple
+AIC |= $aic
+# Model 14
+ols dinf const dinf(-1 to -4) ur(-1 to -2) --simple
+AIC |= $aic
+# Model 15
+ols dinf const dinf(-1 to -4) ur(-1 to -3) --simple
+AIC |= $aic
+# Model 16
+ols dinf const dinf(-1 to -4) ur(-1 to -4) --simple
+AIC |= $aic
+
+# Model 17
+ols dinf const dinf(-1 to -5) ur(-1 to -1) --simple
+AIC |= $aic
+# Model 18
+ols dinf const dinf(-1 to -5) ur(-1 to -2) --simple
+AIC |= $aic
+# Model 19
+ols dinf const dinf(-1 to -5) ur(-1 to -3) --simple
+AIC |= $aic
+# Model 20
+ols dinf const dinf(-1 to -5) ur(-1 to -4) --simple
+AIC |= $aic
+
+# Model 21
+ols dinf const dinf(-1 to -6) ur(-1 to -1) --simple
+AIC |= $aic
+# Model 22
+ols dinf const dinf(-1 to -6) ur(-1 to -2) --simple
+AIC |= $aic
+# Model 23
+ols dinf const dinf(-1 to -6) ur(-1 to -3) --simple
+AIC |= $aic
+# Model 24
+ols dinf const dinf(-1 to -6) ur(-1 to -4) --simple
+AIC |= $aic
+
+AIC ~= seq(1,rows(AIC))'
+cnameset(AIC, "aic model")
+print AIC
+
+
+# Preparations for forecasting
+smpl full
+dataset addobs 8  # add 8 additional observations at sample end
+
+#=====================
+# Run direct forecasts
+#=====================
+
+# 1-step ahead forecast
+smpl 1947:1 2016:3   # estimation sample (in-sample)
+ols dinf dinf(-1 to -4) ur(-1 to -2) --robust --quiet
+fcast 2016:4 2016:4 --dynamic --quiet
+smpl 2016:4 2016:4
+series forecast = $fcast
+series low = forecast - 1.645*$fcse
+series up = forecast + 1.645*$fcse
+
+# 2-step ahead forecast
+smpl 1947:1 2016:3
+ols dinf dinf(-2 to -5) ur(-2 to -3) --robust --quiet
+fcast 2017:1 2017:1 --dynamic --quiet
+smpl 2017:1 2017:1
+series forecast = $fcast
+series low = forecast - 1.645*$fcse
+series up = forecast + 1.645*$fcse
+
+# 3-step ahead forecast
+smpl 1947:1 2016:3
+ols dinf dinf(-3 to -6) ur(-3 to -4) --robust --quiet
+fcast 2017:2 2017:2 --dynamic --quiet
+smpl 2017:2 2017:2
+series forecast = $fcast
+series low = forecast - 1.645*$fcse
+series up = forecast + 1.645*$fcse
+
+# 4-step ahead forecast
+smpl 1947:1 2016:3
+ols dinf dinf(-4 to -7) ur(-4 to -5) --robust --quiet
+fcast 2017:3 2017:3 --dynamic --quiet
+smpl 2017:3 2017:3
+series forecast = $fcast
+series low = forecast - 1.645*$fcse
+series up = forecast + 1.645*$fcse
+
+# 5-step ahead forecast
+smpl 1947:1 2016:3
+ols dinf dinf(-5 to -8) ur(-5 to -6) --robust --quiet
+fcast 2017:4 2017:4 --dynamic --quiet
+smpl 2017:4 2017:4
+series forecast = $fcast
+series low = forecast - 1.645*$fcse
+series up = forecast + 1.645*$fcse
+
+# 6-step ahead forecast
+smpl 1947:1 2016:3
+ols dinf dinf(-6 to -9) ur(-6 to -7) --robust --quiet
+fcast 2018:1 2018:1 --dynamic --quiet
+smpl 2018:1 2018:1
+series forecast = $fcast
+series low = forecast - 1.645*$fcse
+series up = forecast + 1.645*$fcse
+
+# 7-step ahead forecast
+smpl 1947:1 2016:3
+ols dinf dinf(-7 to -10) ur(-7 to -8) --robust --quiet
+fcast 2018:2 2018:2 --dynamic --quiet
+smpl 2018:2 2018:2
+series forecast = $fcast
+series low = forecast - 1.645*$fcse
+series up = forecast + 1.645*$fcse
+
+# 8-step ahead forecast
+smpl 1948:1 2016:3
+ols dinf dinf(-8 to -11) ur(-8 to -9) --robust --quiet
+fcast 2018:3 2018:3 --dynamic --quiet
+smpl 2018:3 2018:3
+series forecast = $fcast
+series low = forecast - 1.645*$fcse
+series up = forecast + 1.645*$fcse
+
+# Prepare plot with forecasts
+setinfo forecast --graph-name="Forecast"
+setinfo low --graph-name="lower 80% forecast interval"
+setinfo up --graph-name="upper 80% forecast interval"
+
+list L = dinf forecast low up
+smpl 2013:1 $tmax
+plot L
+    options with-lines time-series single-yaxis
+    literal set linetype 1 lc rgb 'black' lw 2
+    literal set linetype 2 lc rgb 'red' lw 2
+    literal set linetype 3 lc rgb 'grey' lw 2 dt 2
+    literal set linetype 4 lc rgb 'grey' lw 2 dt 2
+    literal set title "Inflation Rate Forecast from Phillips Curve"
+    literal set key outside below
+    literal set grid
+end plot --output=display
+
+
+
+
+
+
+

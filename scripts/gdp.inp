@@ -1,0 +1,64 @@
+/*
+Replication of the Stata do-file "gdp.do" for
+
+Bruce E. Hansen (2017): "Time Series Econometrics for the 21st Century",
+The Journal of Economic Education, https://users.ssc.wisc.edu/~bhansen/papers/jee.pdf
+
+URL for data and code: https://users.ssc.wisc.edu/~bhansen/progs/jee.html
+*/
+
+clear
+set verbose off
+
+# SET PATH TO FOLDER INCLUDING THE DATASETS
+set workdir "/home/admin-tarassow/git/replication_ardl_hansen_2017"
+
+open "../data/gdp.gdt"
+
+# AR(3), (Hansen 2017, p. 140)
+smpl 1947:2 2016:3
+ols gdp const gdp(-1 to -3) --robust --simple
+
+# AIC comparison (p. 141/142) -- Model selection
+smpl 1948:4 $tmax
+var 6 gdp const --lagselect
+
+# Descriptive statistics for sub-periods
+smpl full
+
+smpl ; 1956:4
+summary gdp --simple
+
+smpl 1957:1 1976:4
+summary gdp --simple
+
+smpl 1977:1 1996:4
+summary gdp --simple
+
+smpl 1997:1 $tmax
+summary gdp --simple
+
+# Regression for sub-periods
+smpl full
+modeltab free
+
+smpl ; 1956:4
+ols gdp const gdp(-1) --robust --quiet
+modeltab add
+
+smpl 1957:1 1976:4
+ols gdp const gdp(-1) --robust --quiet
+modeltab add
+
+smpl 1977:1 1996:4
+ols gdp const gdp(-1) --robust --quiet
+modeltab add
+
+smpl 1997:1 $tmax
+ols gdp const gdp(-1) --robust --quiet
+modeltab add
+
+# Show estimation results
+modeltab show
+
+
